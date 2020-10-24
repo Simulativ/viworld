@@ -54,9 +54,7 @@ function main() {
     
     room = rooms;
     room.onMessage("online",(message) =>{
-      mess = document.createElement("p");mess.innerHTML = message;
-      document.getElementById("broadcast").appendChild(mess);
-
+      broadcastMessage(message);
     });
     room.state.players.onRemove = function(player,sessId){
       delete players[sessId];
@@ -68,41 +66,57 @@ function main() {
         // console.log("Promise success",player._position.x);
         players[sessId]._act = player.action;
         players[sessId]._avatar.name = player.name;
-        players[sessId]._avatar._position.x = player.position.x;
-        players[sessId]._avatar._position.y = player.position.y;
-        players[sessId]._avatar._position.z = player.position.z;
-        players[sessId]._avatar._rotation.y = player.position.rot;
+        players[sessId]._avatar.position.x = player.position.x;
+        players[sessId]._avatar.position.y = player.position.y;
+        players[sessId]._avatar.position.z = player.position.z;
+        players[sessId]._avatar.rotation.y = player.position.rot;
         listOnlinePlayers();
 
-
-
         player.action.onChange = function(){
-          players[sessId]._act = player.action;
+          players[sessId]._act = player.getAction();
         }
-        // player.position.onChange = function(){
-        //   players[sessId]._avatar._position.x = player.position.x;
-        //   players[sessId]._avatar._position.y = player.position.y;
-        //   players[sessId]._avatar._position.z = player.position.z;
-        //   players[sessId]._avatar._rotation.y = player.position.rot;
-        // }
+        player.position.onChange = function(){
+          players[sessId]._avatar._position.x = player.position.x;
+          players[sessId]._avatar._position.y = player.position.y;
+          players[sessId]._avatar._position.z = player.position.z;
+          players[sessId]._avatar.rotation.y = player.position.rot;
+        }
 
       });
       // console.log("A player added",player);
     }
   window.addEventListener("keydown", function(e) {
       room.send('action', players[room.sessionId]._act);
+      var obj = {
+        x: players[room.sessionId]._avatar.position.x,
+        y: players[room.sessionId]._avatar.position.y,
+        z: players[room.sessionId]._avatar.position.z,
+        rot: players[room.sessionId]._avatar.rotation.y,
+      }
+      room.send('motion', obj);
   });
 
   window.addEventListener("keyup", function(e) {
       room.send('action', players[room.sessionId]._act);
   });    
-
+//   window.addEventListener("mousemove", function(e) {
+//     // console.log("lolo");
+//     var tar = players[room.sessionId]
+//     var obj = {
+//       x: tar._avatar.position.x,
+//       y: tar._avatar.position.y,
+//       z: tar._avatar.position.z,
+//       rot: tar._av2cam - tar._camera.alpha,
+//     }
+//     room.send('motion', obj);
+// }); 
+  
   window.addEventListener("keypress", function(e) {
     var obj = {
-      x: players[room.sessionId]._avatar._position.x,
-      y: players[room.sessionId]._avatar._position.y,
-      z: players[room.sessionId]._avatar._position.z,
-      rot: players[room.sessionId]._avatar._rotation.y,
+      x: players[room.sessionId]._avatar.position.x,
+      y: players[room.sessionId]._avatar.position.y,
+      z: players[room.sessionId]._avatar.position.z,
+      rot: players[room.sessionId]._avatar.rotation.y,
     }
     room.send('motion', obj);
 });  
@@ -118,7 +132,13 @@ function main() {
     engine.resize();
   });
 }
-
+// document.getElementById("renderCanvas").onclick = function (e) {
+//   canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
+//   if (canvas.requestPointerLock) {
+//     canvas.requestPointerLock();
+//   }
+//   canvas.focus();
+// };
 
 function loadPlayer(scene, engine, canvas,sessId) {
 
@@ -175,7 +195,7 @@ function loadPlayer(scene, engine, canvas,sessId) {
     var cc;
     players[sessId] = cc = new CharacterController(player, camera, scene);
     cc.setFaceForward(true);
-    cc.setMode(0);
+    cc.setMode(1);
     cc.setTurnSpeed(45);
     //below makes the controller point the camera at the player head which is approx
     //1.5m above the player origin
@@ -227,36 +247,6 @@ function loadPlayer(scene, engine, canvas,sessId) {
 })
 }
 
-//this is how you might set the animation ranges for a skeleton
-function setAnimationRanges(skel) {
-  delAnimRanges(skel);
-
-  skel.createAnimationRange("fall", 0, 16);
-  skel.createAnimationRange("idle", 21, 65);
-  skel.createAnimationRange("jump", 70, 94);
-  skel.createAnimationRange("run", 100, 121);
-  skel.createAnimationRange("slideBack", 125, 129);
-  skel.createAnimationRange("strafeLeft", 135, 179);
-  skel.createAnimationRange("strafeRight", 185, 229);
-  skel.createAnimationRange("turnLeft", 240, 262);
-  skel.createAnimationRange("turnRight", 270, 292);
-  skel.createAnimationRange("walk", 300, 335);
-  skel.createAnimationRange("walkBack", 340, 366);
-}
-/*
- * delete all existing ranges
- * @param {type} skel
- * @returns {undefined}
- */
-function delAnimRanges(skel) {
-  let ars = skel.getAnimationRanges();
-  let l = ars.length;
-  for (let i = 0; i < l; i++) {
-    let ar = ars[i];
-    console.log(ar.name + "," + ar.from + "," + ar.to);
-    skel.deleteAnimationRange(ar.name, false);
-  }
-}
 
 function createGround(scene, groundMaterial) {
   BABYLON.MeshBuilder.CreateGroundFromHeightMap(
@@ -294,32 +284,8 @@ function createGroundMaterial(scene) {
   return groundMaterial;
 }
 
-var showHelp = function () {
-  var el = document.getElementById("overlay");
-  el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
-  canvas.focus();
-};
 
-function showControls() {
-  var el = document.getElementById("controls");
-  el.style.visibility = "visible";
-}
-
-var w,
-  wb,
-  wbf,
-  r,
-  j,
-  tl,
-  tlf,
-  tr,
-  trf,
-  sl,
-  slf,
-  sr,
-  srf = false;
-
-  function listOnlinePlayers(){
+function listOnlinePlayers(){
     board = document.getElementById("onlineplayers");
     while (board.firstChild) {
       board.removeChild(board.lastChild);
@@ -332,7 +298,14 @@ var w,
       p.innerHTML = players[key]._avatar.name;
       board.appendChild(p);
     })
-  }
+}
+
+function broadcastMessage(message){
+  mess = document.createElement("p");
+  mess.innerHTML = message;
+  document.getElementById("broadcast").appendChild(mess);
+}
+
 var lockPointer = function () {
     canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
     if (canvas.requestPointerLock) {
@@ -346,90 +319,4 @@ var lockPointer = function () {
 //   console.log(cc._act);
 // }
 
-function setControls() {
-//   const x = document.getElementsByTagName("button");
 
-//   for (i = 0; i < x.length; i++) {
-//     x[i].className = "w3-btn w3-border w3-round w3-pale-red";
-//   }
-
-  // document.getElementById("renderCanvas").onclick = function (e) {
-  //   canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
-  //   if (canvas.requestPointerLock) {
-  //     canvas.requestPointerLock();
-  //   }
-  //   canvas.focus();
-  // };
-
-//   document.getElementById("w").onclick = function (e) {
-//     cc.walk((w = !w));
-//     toggleClass(e);
-//   };
-//   document.getElementById("wb").onclick = function (e) {
-//     cc.walkBack((wb = !wb));
-//     toggleClass(e);
-//   };
-//   document.getElementById("wbf").onclick = function (e) {
-//     cc.walkBackFast((wbf = !wbf));
-//     toggleClass(e);
-//   };
-//   document.getElementById("r").onclick = function (e) {
-//     cc.run((r = !r));
-//     toggleClass(e);
-//   };
-//   document.getElementById("j").onclick = function (e) {
-//     cc.jump();
-//     canvas.focus();
-//   };
-//   document.getElementById("tl").onclick = function (e) {
-//     cc.turnLeft((tl = !tl));
-//     toggleClass(e);
-//   };
-//   document.getElementById("tlf").onclick = function (e) {
-//     cc.turnLeftFast((tlf = !tlf));
-//     toggleClass(e);
-//   };
-//   document.getElementById("tr").onclick = function (e) {
-//     cc.turnRight((tr = !tr));
-//     toggleClass(e);
-//   };
-//   document.getElementById("trf").onclick = function (e) {
-//     cc.turnRightFast((trf = !trf));
-//     toggleClass(e);
-//   };
-//   document.getElementById("sl").onclick = function (e) {
-//     cc.strafeLeft((sl = !sl));
-//     toggleClass(e);
-//   };
-//   document.getElementById("slf").onclick = function (e) {
-//     cc.strafeLeftFast((slf = !slf));
-//     toggleClass(e);
-//   };
-//   document.getElementById("sr").onclick = function (e) {
-//     cc.strafeRight((sr = !sr));
-//     toggleClass(e);
-//   };
-//   document.getElementById("srf").onclick = function (e) {
-//     cc.strafeRightFast((srf = !srf));
-//     toggleClass(e);
-//   };
-
-//   document.getElementById("tp").onclick = function (e) {
-//     cc.setMode(0);
-//     canvas.focus();
-//   };
-//   document.getElementById("td").onclick = function (e) {
-//     cc.setMode(1);
-//     canvas.focus();
-//   };
-//   document.getElementById("toff").onclick = function (e) {
-//     cc.setTurningOff(e.target.checked);
-//     canvas.focus();
-//   };
-//   document.getElementById("kb").onclick = function (e) {
-//     cc.enableKeyBoard(e.target.checked);
-//     canvas.focus();
-//   };
-//   document.getElementById("help").onclick = showHelp;
-//   document.getElementById("closehelp").onclick = showHelp;
-}
