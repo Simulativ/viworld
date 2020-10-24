@@ -53,7 +53,11 @@ function main() {
     console.log("joined successfully", rooms);
     
     room = rooms;
-    
+    room.onMessage("online",(message) =>{
+      mess = document.createElement("p");mess.innerHTML = message;
+      document.getElementById("broadcast").appendChild(mess);
+
+    });
     room.state.players.onAdd = function(player,sessId){
       loadPlayer(scene,engine,canvas,sessId,player).then((cc) => {
         console.log("Promise success",player._position.x);

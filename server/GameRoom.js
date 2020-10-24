@@ -20,8 +20,8 @@ class GameRoom extends Room {
     onJoin (client,options) {
         const player = new Player();
         player.name = options.name;
-        console.log(`Player ${options.name} joined on the server`);
-
+        // console.log(`Player ${options.name} joined on the server`);
+        this.broadcast("online", `${options.name} joined on the server`);
         this.state.players.set(client.sessionId, player);
     }
 
@@ -33,7 +33,8 @@ class GameRoom extends Room {
     // }
 
     onLeave (client) {
-        console.log(`${this.state.players[client.sessionId].name} has left the game`)
+        // console.log(`${this.state.players[client.sessionId].name} has left the game`)
+        this.broadcast("online", `${this.state.players[client.sessionId].name} has left the game`);
         this.state.players.delete(client.sessionId);
     }
 
