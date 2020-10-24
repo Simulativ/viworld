@@ -58,14 +58,21 @@ function main() {
       document.getElementById("broadcast").appendChild(mess);
 
     });
+    room.state.players.onRemove = function(player,sessId){
+      delete players[sessId];
+      listOnlinePlayers();
+    }
     room.state.players.onAdd = function(player,sessId){
+      
       loadPlayer(scene,engine,canvas,sessId,player).then((cc) => {
-        console.log("Promise success",player._position.x);
+        // console.log("Promise success",player._position.x);
         players[sessId]._act = player.action;
+        players[sessId]._avatar.name = player.name;
         players[sessId]._avatar._position.x = player.position.x;
         players[sessId]._avatar._position.y = player.position.y;
         players[sessId]._avatar._position.z = player.position.z;
         players[sessId]._avatar._rotation.y = player.position.rot;
+        listOnlinePlayers();
 
 
 
@@ -312,7 +319,20 @@ var w,
   sr,
   srf = false;
 
-
+  function listOnlinePlayers(){
+    board = document.getElementById("onlineplayers");
+    while (board.firstChild) {
+      board.removeChild(board.lastChild);
+    }
+    h5 = document.createElement("h5")
+    h5.innerHTML = "Online Players";
+    board.appendChild(h5);
+    Object.keys(players).forEach(function(key) {
+      p = document.createElement("p");
+      p.innerHTML = players[key]._avatar.name;
+      board.appendChild(p);
+    })
+  }
 var lockPointer = function () {
     canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
     if (canvas.requestPointerLock) {
